@@ -1,10 +1,10 @@
-FROM prefecthq/prefect:latest-python3.8
+FROM prefecthq/prefect:2.8.4-python3.11
 
 # Linux dependencies
 RUN apt-get update && apt-get install -y git
 
 # Prefect extras for Dask on Kubernetes
-RUN pip install "prefect[kubernetes]==1.*"
+RUN pip install prefect-dask
 
 # base Python dependencies for DPT
 RUN pip install python-dotenv lxml requests loguru validify pandas
