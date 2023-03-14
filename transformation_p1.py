@@ -106,7 +106,7 @@ def run_transformation_p1(root_path, session_data=None, is_gui_session=False, pr
 
     if propagate_logging:
         logger.add(sys.stdout)
-        logfile_path = "{}transformation.log".format(output_path)
+        logfile_path = "{}/data_output/{}/transformation.log".format(root_path, input_folder_name)
         logger.add(logfile_path, rotation="10 MB")
 
     # Zurücksetzen des Prozessierungs-Status:

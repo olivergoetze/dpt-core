@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y git
 RUN pip install s3fs prefect-dask
 
 # base Python dependencies for DPT
-RUN pip install python-dotenv lxml requests loguru validify pandas
+RUN pip install python-dotenv lxml requests loguru validify pandas pygtail
 
 # additional Python dependencies for providerspecific scripts
 RUN pip install fuzzywuzzy python-Levenshtein langcodes[data] openpyxl Pillow
