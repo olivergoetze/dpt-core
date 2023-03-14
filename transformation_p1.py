@@ -2,6 +2,7 @@ import os
 import datetime
 import traceback
 import sys
+import io
 from lxml import etree
 from loguru import logger
 
@@ -106,6 +107,8 @@ def run_transformation_p1(root_path, session_data=None, is_gui_session=False, pr
 
     if propagate_logging:
         logger.add(sys.stdout)
+        out_file = open(sys.stdout.fileno(), 'wb', 0)
+        sys.stdout = io.TextIOWrapper(out_file, write_through=True)
         logfile_path = "{}transformation.log".format(output_path)
         logger.add(logfile_path, rotation="10 MB")
 
