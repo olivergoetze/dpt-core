@@ -23,7 +23,15 @@ def parse_xml_content(root_path, xml_findbuch_in, input_type, input_file, error_
 
         spec = importlib.util.spec_from_file_location("parse_xml_content", module_path)
         provider_module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(provider_module)
+        try:
+            spec.loader.exec_module(provider_module)
+        except FileNotFoundError as e:
+            traceback_string = traceback.format_exc()
+            logger.error("Die providerspezifische Anpassung {} ist nicht mehr im Repository verfügbar; Fehlermeldung: {}. Bitte prüfen Sie, ob die Datei umbenannt, verschoben oder gelöscht wurde.\n {}".format(module_name, e, traceback_string))
+            error_status = 1
+            write_processing_status(root_path=root_path, processing_step=None, status_message=None,
+                                    error_status=error_status)
+            continue
 
         try:
             xml_findbuch_in = provider_module.parse_xml_content(xml_findbuch_in, input_type, input_file)
