@@ -31,7 +31,7 @@ from modules.provider_specific.common import user_interaction
 from modules.provider_specific.common import filesystem_operation
 
 
-def run_transformation_p1(root_path, session_data=None, is_gui_session=False, propagate_logging=False, is_unattended_session=False):
+def run_transformation_p1(root_path, session_data=None, is_gui_session=False, propagate_logging=False, is_unattended_session=False, transformation_job_configuration=None, transformation_job_enrichment_configuration=None, transformation_job_base_mapping_configuration=None, transformation_job_data_provider_ddbid=None):
     """Aufruf der Transformationsmodule.
 
     Wird propagate_logging=True übergeben, so werden die durch Loguru erfassten Logmeldungen auch an stdout übergeben sowie in eine Log-Datei im Output-Verzeichnis geschrieben.
@@ -93,10 +93,22 @@ def run_transformation_p1(root_path, session_data=None, is_gui_session=False, pr
 
 
     # Erstellen einer provider.xml-Datei, falls noch nicht vorhanden:
-    handle_provider_metadata.create_provider_template(input_folder_name)
+    if not is_unattended_session:  # bei Cloud-Run überspringen
+        handle_provider_metadata.create_provider_template(input_folder_name)
 
     # Auslesen der provider.xml-Datei; Zuweisung der belegten Feldinhalte:
-    provider_name, provider_website, provider_id, provider_tektonik_url, provider_addressline_strasse, provider_addressline_ort, provider_addressline_mail, provider_state, provider_archivtyp, provider_software = handle_provider_metadata.get_provider_metadata(provider_isil)
+    if is_unattended_session:  # bei Cloud-Run via Prefect übergebene Parameter verwenden
+        provider_name = transformation_job_enrichment_configuration["data_provider_name"]
+        provider_website = transformation_job_enrichment_configuration["data_provider_website"]
+        provider_id = transformation_job_data_provider_ddbid
+        provider_tektonik_url = transformation_job_enrichment_configuration["data_provider_tektonik_url"]
+        provider_addressline_strasse = transformation_job_enrichment_configuration["data_provider_addressline_strasse"]
+        provider_addressline_ort = transformation_job_enrichment_configuration["data_provider_addressline_ort"]
+        provider_addressline_mail = transformation_job_enrichment_configuration["data_provider_addressline_mail"]
+        provider_state = transformation_job_enrichment_configuration["data_provider_state"]
+        provider_archivtyp = transformation_job_enrichment_configuration["data_provider_archivtyp"]
+    else:
+        provider_name, provider_website, provider_id, provider_tektonik_url, provider_addressline_strasse, provider_addressline_ort, provider_addressline_mail, provider_state, provider_archivtyp, provider_software = handle_provider_metadata.get_provider_metadata(provider_isil)
     administrative_data = {"provider_isil": provider_isil, "provider_id": provider_id, "provider_name": provider_name,
                            "provider_archivtyp": provider_archivtyp, "provider_state": provider_state,
                            "provider_addressline_strasse": provider_addressline_strasse,
@@ -156,7 +168,7 @@ def run_transformation_p1(root_path, session_data=None, is_gui_session=False, pr
         write_processing_status(root_path=root_path, processing_step=transformation_progress,
                                 status_message="Verarbeite Workflow-Module für {}: {} (Datei {}/{})".format(
                                     input_type, input_file, input_file_i+1, input_files_count), error_status=error_status, current_input_file=input_file, current_input_type=input_type, input_file_progress=input_file_i+1, input_file_count=input_files_count)
-        workflow_modules = load_provider_modules()
+        workflow_modules = load_provider_modules(transformation_job_configuration, is_unattended_session)
         for workflow_module in workflow_modules:
             if handle_thread_actions.load_from_xml("stop_thread", root_path) is True:
                 break
@@ -180,7 +192,7 @@ def run_transformation_p1(root_path, session_data=None, is_gui_session=False, pr
                     if result_format == "xml":
                         write_processing_status(root_path=root_path, processing_step=transformation_progress, status_message="Verarbeite Workflow-Modul '{}' für {}: {} (Datei {}/{})".format(workflow_module_type, input_type, input_file, input_file_i+1, input_files_count), error_status=error_status, workflow_module="maintenance_function.py", workflow_module_type=workflow_module_type, current_input_file=input_file, current_input_type=input_type, input_file_progress=input_file_i+1, input_file_count=input_files_count, log_status_message=True)
                         try:
-                            xml_findbuch_in, result_format = maintenance_function.parse_xml_content(xml_findbuch_in, input_type, input_file, provider_id, session_data, administrative_data, error_status, propagate_logging, module_config=workflow_module["Konfiguration"])
+                            xml_findbuch_in, result_format = maintenance_function.parse_xml_content(xml_findbuch_in, input_type, input_file, provider_id, session_data, administrative_data, error_status, propagate_logging, transformation_job_base_mapping_configuration, transformation_job_enrichment_configuration, is_unattended_session, module_config=workflow_module["Konfiguration"])
                         except (IndexError, TypeError, AttributeError, KeyError, SyntaxError) as e:
                             traceback_string = traceback.format_exc()
                             logger.warning("{} für {} {} fehlgeschlagen; Fehlermeldung: {}.\n {}".format(workflow_module_type, input_type, input_file, e, traceback_string))

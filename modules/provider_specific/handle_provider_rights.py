@@ -4,9 +4,9 @@ from modules.common.provider_metadata.handle_provider_metadata import load_provi
 
 # Anreicherung in transformation_p1
 
-def parse_xml_content(xml_findbuch_in, input_file, input_type):
+def parse_xml_content(xml_findbuch_in, input_file, input_type, transformation_job_enrichment_configuration=None, is_unattended_session=False):
 
-    rights_information = load_provider_rights()
+    rights_information = load_provider_rights(transformation_job_enrichment_configuration, is_unattended_session)
 
     # Überprüfen, ob userestrict bereits auf Bestandsebene (archdesc) vorhanden
     if input_type == "findbuch" or input_type == "bestandsfindbuch":

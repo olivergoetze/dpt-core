@@ -11,7 +11,7 @@ def parse_xml_content(root_path, xml_findbuch_in, input_type, input_file, error_
     # [{"ISIL": "DE-2088", "Modulname": "module_name"}, {.., ..}]
 
     if provider_scripts is None:
-        provider_scripts = load_provider_modules()
+        provider_scripts = load_provider_modules()  # Die Module werden in einer übergeordneten Schleife (in transformation_p1, durch Aufruf von load_provider_modules()) ermittelt und einzeln an dieses Skript (handle_provider_scripts.py) übergeben. Daher ist dieser Aufruf von load_provider_modules nicht mehr in Verwendung.
 
     for script in provider_scripts:
         isil = script["ISIL"]

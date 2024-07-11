@@ -4,7 +4,7 @@ import os
 from modules.connectors.ead2002 import ead2002
 from modules.common.provider_metadata import handle_provider_metadata
 
-def apply_mapping(session_data, administrative_data, xml_findbuch_in, input_type, input_file, error_status, propagate_logging):
+def apply_mapping(session_data, administrative_data, xml_findbuch_in, input_type, input_file, error_status, propagate_logging, transformation_job_base_mapping_configuration=None, transformation_job_enrichment_configuration=None, is_unattended_session=False):
 
     # Übernahme der Mapping-Angaben aus der xml-Datei im data_input-Verzeichnis (wiederum befüllt durch Mapping-GUI)
 
@@ -12,8 +12,11 @@ def apply_mapping(session_data, administrative_data, xml_findbuch_in, input_type
 
     # mapping_def = load_mapping_def(session_data, called_by="transformation")
 
-    mapping_def = handle_provider_metadata.load_provider_mapping_definition()
-    provider_rights = handle_provider_metadata.load_provider_rights()
+    if is_unattended_session:  # bei Cloud-Run via Prefect übergebene Parameter verwenden
+        mapping_def = transformation_job_base_mapping_configuration["dptcore_id"]
+    else:
+        mapping_def = handle_provider_metadata.load_provider_mapping_definition()
+    provider_rights = handle_provider_metadata.load_provider_rights(transformation_job_enrichment_configuration, is_unattended_session)
     result_format = "xml"
 
     if mapping_def is not None:  # Connector nur dann aufrufen, wenn Mapping für Provider existiert.

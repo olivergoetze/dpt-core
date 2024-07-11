@@ -150,49 +150,72 @@ def write_provider_modules(module_list):
     serialize_provider_xml(provider_xml_in)
 
 
-def load_provider_modules():
+def load_provider_modules(transformation_job_configuration=None, is_unattended_session=False):
     # Verwendet zum Auslesen des Elements "providerspecific_modules" aus der provider.xml des Datengebers
-    provider_xml_in = etree.parse("provider.xml")
-
     providerspecific_modules = []
 
-    providerspecific_modules_source = provider_xml_in.find("//providerspecific_modules")
-    if providerspecific_modules_source is None:
-        archiv_element = provider_xml_in.xpath("/archiv")
-        etree.SubElement(archiv_element[0], "providerspecific_modules")
-
-        # Ausgabe der modifizierten provider.xml:
-        serialize_provider_xml(provider_xml_in)
-
-    else:
-        if len(providerspecific_modules_source) == 0:
-            # Migration für bestehende provider.xml-Dateien
-            providerspecific_modules_string = providerspecific_modules_source.text
-            if providerspecific_modules_string is not None:
-                providerspecific_modules_list = ast.literal_eval(providerspecific_modules_string)
-                for module_item in providerspecific_modules_list:
-                    module_item_split = module_item.split(",")
-                    single_module = {}
-                    single_module["ISIL"] = module_item_split[0]
-                    single_module["Modulname"] = module_item_split[1]
-                    single_module["Konfiguration"] = None
-
-                    providerspecific_modules.append(single_module)
-
-
-        for module_item in providerspecific_modules_source:
+    if is_unattended_session:  # bei Cloud-Run via Prefect übergebene Parameter verwenden
+        for module_item in transformation_job_configuration:
             single_module = {}
-            module_provider = module_item.find("module_provider").text
-            module_name = module_item.find("module_name").text
-            module_config = module_item.find("module_config").text
 
-            if module_config is not None:
-                module_config = ast.literal_eval(module_config)
+            if module_item["module_id"] in ["preprocessing_base_mapping", "preprocessing_ddb_preprocessing", "preprocessing_rights_enrichment", "preprocessing_aggregator_enrichment"]:
+                single_module["ISIL"] = "common"
+                single_module["Modulname"] = "maintenance_function.py"
 
-            single_module["ISIL"] = module_provider
-            single_module["Modulname"] = module_name
-            single_module["Konfiguration"] = module_config
+                if module_item["module_id"] == "preprocessing_base_mapping":
+                    single_module["Konfiguration"] = {"maintenance_type": "mapping_definition"}
+                elif module_item["module_id"] == "preprocessing_ddb_preprocessing":
+                    single_module["Konfiguration"] = {"maintenance_type": "ddb2017_preprocessing"}
+                elif module_item["module_id"] == "preprocessing_rights_enrichment":
+                    single_module["Konfiguration"] = {"maintenance_type": "rights_info_enrichment"}
+                elif module_item["module_id"] == "preprocessing_aggregator_enrichment":
+                    single_module["Konfiguration"] = {"maintenance_type": "aggregator_info_enrichment"}
+            else:
+                single_module["ISIL"] = module_item["module_isil"]
+                single_module["Modulname"] = module_item["module_name"]
+                single_module["Konfiguration"] = {"repository_prefix": module_item["module_repository_id"]}
+
             providerspecific_modules.append(single_module)
+    else:
+        provider_xml_in = etree.parse("provider.xml")
+
+        providerspecific_modules_source = provider_xml_in.find("//providerspecific_modules")
+        if providerspecific_modules_source is None:
+            archiv_element = provider_xml_in.xpath("/archiv")
+            etree.SubElement(archiv_element[0], "providerspecific_modules")
+
+            # Ausgabe der modifizierten provider.xml:
+            serialize_provider_xml(provider_xml_in)
+
+        else:
+            if len(providerspecific_modules_source) == 0:
+                # Migration für bestehende provider.xml-Dateien
+                providerspecific_modules_string = providerspecific_modules_source.text
+                if providerspecific_modules_string is not None:
+                    providerspecific_modules_list = ast.literal_eval(providerspecific_modules_string)
+                    for module_item in providerspecific_modules_list:
+                        module_item_split = module_item.split(",")
+                        single_module = {}
+                        single_module["ISIL"] = module_item_split[0]
+                        single_module["Modulname"] = module_item_split[1]
+                        single_module["Konfiguration"] = None
+
+                        providerspecific_modules.append(single_module)
+
+
+            for module_item in providerspecific_modules_source:
+                single_module = {}
+                module_provider = module_item.find("module_provider").text
+                module_name = module_item.find("module_name").text
+                module_config = module_item.find("module_config").text
+
+                if module_config is not None:
+                    module_config = ast.literal_eval(module_config)
+
+                single_module["ISIL"] = module_provider
+                single_module["Modulname"] = module_name
+                single_module["Konfiguration"] = module_config
+                providerspecific_modules.append(single_module)
 
     return providerspecific_modules
 
@@ -213,35 +236,43 @@ def write_provider_rights(rights_information):
     serialize_provider_xml(provider_xml_in)
 
 
-def load_provider_rights():
+def load_provider_rights(transformation_job_enrichment_configuration=None, is_unattended_session=False):
     # Verwendet zum Auslesen des Elements "rights_information" aus der provider.xml des Datengebers
-    provider_xml_in = etree.parse("provider.xml")
-
-    rights_information = {"rights_metadata_uri": "", "rights_metadata_label": "", "rights_binaries_uri": "",
-                          "rights_binaries_label": "", "rights_statement": ""}
-    rights_information_source = provider_xml_in.findall("//rights_information")
-    if len(rights_information_source) == 0:
-        archiv_element = provider_xml_in.xpath("/archiv")
-        rights_information_element = etree.SubElement(archiv_element[0], "rights_information")
-        rights_information_metadata_element = etree.SubElement(rights_information_element, "metadata")
-        rights_information_metadata_uri_element = etree.SubElement(rights_information_metadata_element, "uri")
-        rights_information_metadata_label_element = etree.SubElement(rights_information_metadata_element, "label")
-
-        rights_information_binaries_element = etree.SubElement(rights_information_element, "binaries")
-        rights_information_binaries_uri_element = etree.SubElement(rights_information_binaries_element, "uri")
-        rights_information_binaries_label_element = etree.SubElement(rights_information_binaries_element, "label")
-
-        rights_information_statement_element = etree.SubElement(rights_information_element, "statement")
-
-        # Ausgabe der modifizierten provider.xml:
-        serialize_provider_xml(provider_xml_in)
-
+    if is_unattended_session:  # bei Cloud-Run via Prefect übergebene Parameter verwenden
+        rights_information = {}
+        rights_information["rights_metadata_uri"] = transformation_job_enrichment_configuration["preset_rights_enrichment_metadata"]["rights_uri"]
+        rights_information["rights_metadata_label"] = transformation_job_enrichment_configuration["preset_rights_enrichment_metadata"]["rights_label"]
+        rights_information["rights_binaries_uri"] = transformation_job_enrichment_configuration["preset_rights_enrichment_binaries"]["rights_uri"]
+        rights_information["rights_binaries_label"] = transformation_job_enrichment_configuration["preset_rights_enrichment_binaries"]["rights_label"]
+        rights_information["rights_statement"] = transformation_job_enrichment_configuration["preset_rights_enrichment_statement"]
     else:
-        rights_information["rights_metadata_uri"] = rights_information_source[0].find("metadata/uri").text
-        rights_information["rights_metadata_label"] = rights_information_source[0].find("metadata/label").text
-        rights_information["rights_binaries_uri"] = rights_information_source[0].find("binaries/uri").text
-        rights_information["rights_binaries_label"] = rights_information_source[0].find("binaries/label").text
-        rights_information["rights_statement"] = rights_information_source[0].find("statement").text
+        provider_xml_in = etree.parse("provider.xml")
+
+        rights_information = {"rights_metadata_uri": "", "rights_metadata_label": "", "rights_binaries_uri": "",
+                              "rights_binaries_label": "", "rights_statement": ""}
+        rights_information_source = provider_xml_in.findall("//rights_information")
+        if len(rights_information_source) == 0:
+            archiv_element = provider_xml_in.xpath("/archiv")
+            rights_information_element = etree.SubElement(archiv_element[0], "rights_information")
+            rights_information_metadata_element = etree.SubElement(rights_information_element, "metadata")
+            rights_information_metadata_uri_element = etree.SubElement(rights_information_metadata_element, "uri")
+            rights_information_metadata_label_element = etree.SubElement(rights_information_metadata_element, "label")
+
+            rights_information_binaries_element = etree.SubElement(rights_information_element, "binaries")
+            rights_information_binaries_uri_element = etree.SubElement(rights_information_binaries_element, "uri")
+            rights_information_binaries_label_element = etree.SubElement(rights_information_binaries_element, "label")
+
+            rights_information_statement_element = etree.SubElement(rights_information_element, "statement")
+
+            # Ausgabe der modifizierten provider.xml:
+            serialize_provider_xml(provider_xml_in)
+
+        else:
+            rights_information["rights_metadata_uri"] = rights_information_source[0].find("metadata/uri").text
+            rights_information["rights_metadata_label"] = rights_information_source[0].find("metadata/label").text
+            rights_information["rights_binaries_uri"] = rights_information_source[0].find("binaries/uri").text
+            rights_information["rights_binaries_label"] = rights_information_source[0].find("binaries/label").text
+            rights_information["rights_statement"] = rights_information_source[0].find("statement").text
 
 
     return rights_information
