@@ -7,8 +7,8 @@ from modules.common.provider_metadata.handle_provider_metadata import load_provi
 def parse_xml_content(xml_findbuch_in, input_file, input_type, transformation_job_enrichment_configuration=None, is_unattended_session=False):
     if is_unattended_session:  # bei Cloud-Run via Prefect übergebene Parameter verwenden
         aggregator_information = {}
-        aggregator_information["show_aggregator_logo"] = False
-        aggregator_information["use_aggregator_logo"] = False
+        aggregator_information["show_aggregator_logo"] = "False"
+        aggregator_information["use_aggregator_logo"] = "False"
         aggregator_information["aggregator_id"] = transformation_job_enrichment_configuration["preset_aggregator_enrichment"]["ddbid"]
         aggregator_information["aggregator_label"] = transformation_job_enrichment_configuration["preset_aggregator_enrichment"]["name"]
     else:
