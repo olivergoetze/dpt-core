@@ -14,3 +14,12 @@ RUN pip install fuzzywuzzy python-Levenshtein langcodes[data] openpyxl Pillow
 
 # clone DPT Core Git repository
 RUN git clone https://github.com/olivergoetze/dpt-core.git dpt_core
+
+RUN mkdir /.prefect
+RUN chgrp -R 0 /.prefect && \
+         chmod -R g=u /.prefect
+
+RUN chgrp -R 0 /opt && \
+         chmod -R g=u /opt
+
+USER 1001
