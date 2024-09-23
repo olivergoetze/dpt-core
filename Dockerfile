@@ -13,7 +13,11 @@ RUN pip install python-dotenv lxml requests loguru validify pandas pygtail
 RUN pip install fuzzywuzzy python-Levenshtein langcodes[data] openpyxl Pillow
 
 # clone DPT Core Git repository
-RUN git clone https://github.com/olivergoetze/dpt-core.git dpt_core
+RUN mkdir /opt/dpt_core
+RUN git clone https://github.com/olivergoetze/dpt-core.git /opt/dpt_core
+
+RUN mkdir /opt/temp_dir
+RUN mkdir /opt/working_dir
 
 RUN mkdir /.prefect
 RUN chgrp -R 0 /.prefect && \
