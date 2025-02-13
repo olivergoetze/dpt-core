@@ -1,4 +1,4 @@
-FROM prefecthq/prefect:3.0.1-python3.11
+FROM prefecthq/prefect:3.2.1-python3.11
 
 # Linux dependencies
 RUN apt-get update && apt-get install -y git
